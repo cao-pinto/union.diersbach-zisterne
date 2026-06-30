@@ -15,21 +15,12 @@ jobs:
       - name: Repo auschecken
         uses: actions/checkout@v4
 
-
-      - name: Debug Host-Secret (sicher)
-        env:
-          SHELLY_HOST: ${{ secrets.SHELLY_HOST }}
-        run: |
-          echo "Länge: ${#SHELLY_HOST}"
-          echo "Erstes Zeichen: '${SHELLY_HOST:0:1}'"
-          echo "Letztes Zeichen: '${SHELLY_HOST: -1}'"
-          
       - name: Status vom Shelly-Cloud-API holen
         env:
           SHELLY_HOST: ${{ secrets.SHELLY_HOST }}
           SHELLY_AUTH_KEY: ${{ secrets.SHELLY_AUTH_KEY }}
         run: |
-          curl -s -X POST "https://${SHELLY_HOST}/v2/devices/api/get?auth_key=${SHELLY_AUTH_KEY}" \
+          curl -s -X POST "${SHELLY_HOST}/v2/devices/api/get?auth_key=${SHELLY_AUTH_KEY}" \
             -H "Content-Type: application/json" \
             -d '{"ids":["2cbcbb2d4f60"],"select":["status"]}' \
             -o raw_response.json
