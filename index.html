@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zisterne &amp; Pumpen</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    color: #222;
+  }
+  .card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  h1 {
+    font-size: 1.2em;
+    margin: 0 0 12px 0;
+  }
+  .percent {
+    font-size: 2.5em;
+    font-weight: bold;
+  }
+  .bar-bg {
+    background: #ddd;
+    border-radius: 4px;
+    height: 16px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    background: #2b7cd3;
+    height: 100%;
+  }
+  .pump {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+  }
+  .pump:last-child { border-bottom: none; }
+  .status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+  }
+  .on { background: #2ecc71; }
+  .off { background: #aaa; }
+  .unknown { background: #e0a800; }
+  .timestamp {
+    font-size: 0.8em;
+    color: #777;
+    margin-top: 16px;
+  }
+  .error {
+    color: #c0392b;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Füllstand Zisterne</h1>
+  <div id="percent" class="percent">–</div>
+  <div class="bar-bg">
+    <div id="bar" class="bar-fill" style="width:0%"></div>
+  </div>
+</div>
+
+<div class="card">
+  <h1>Pumpen</h1>
+  <div class="pump">
+    <span><span id="pump1-dot" class="status-dot unknown"></span>Pumpe 1</span>
+    <span id="pump1-text">noch nicht konfiguriert</span>
+  </div>
+  <div class="pump">
+    <span><span id="pump2-dot" class="status-dot unknown"></span>Pumpe 2</span>
+    <span id="pump2-text">noch nicht konfiguriert</span>
+  </div>
+</div>
+
+<div class="timestamp" id="timestamp"></div>
+
+<script>
+async function loadData() {
+  try {
+    const response = await fetch('data.json?t=' + Date.now());
+    if (!response.ok) throw new Error('data.json nicht gefunden');
+    const data = await response.json();
+
+    const percentEl = document.getElementById('percent');
+    const barEl = document.getElementById('bar');
+    if (data.cistern_percent === null || data.cistern_percent === undefined) {
+      percentEl.textContent = 'keine Daten';
+    } else {
+      const p = Math.max(0, Math.min(100, data.cistern_percent));
+      percentEl.textContent = p.toFixed(1) + ' %';
+      barEl.style.width = p + '%';
+    }
+
+    document.getElementById('timestamp').textContent =
+      data.last_updated ? 'Letzte Aktualisierung: ' + data.last_updated : '';
+
+    // Pumpen sind aktuell Platzhalter, werden später ergänzt
+  } catch (err) {
+    document.getElementById('percent').textContent = 'Fehler beim Laden';
+    document.getElementById('percent').className = 'percent error';
+    console.error(err);
+  }
+}
+
+loadData();
+setInterval(loadData, 60000); // jede Minute neu laden
+</script>
+
+</body>
+</html>
