@@ -107,8 +107,15 @@ async function loadData() {
       barEl.style.width = p + '%';
     }
 
-    document.getElementById('timestamp').textContent =
-      data.last_updated ? 'Letzte Aktualisierung: ' + data.last_updated : '';
+    if (data.last_updated) {
+      const localTime = new Date(data.last_updated).toLocaleString('de-AT', {
+        dateStyle: 'short',
+        timeStyle: 'medium'
+      });
+      document.getElementById('timestamp').textContent = 'Letzte Aktualisierung: ' + localTime;
+    } else {
+      document.getElementById('timestamp').textContent = '';
+    }
 
     // Pumpen sind aktuell Platzhalter, werden später ergänzt
   } catch (err) {
