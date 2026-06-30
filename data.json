@@ -1,0 +1,8 @@
+{
+  "cistern_percent": null,
+  "last_updated": null,
+  "pumps": {
+    "pump1": "not_configured",
+    "pump2": "not_configured"
+  }
+}
