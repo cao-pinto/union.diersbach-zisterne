@@ -1,0 +1,55 @@
+name: Shelly Daten abrufen
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # alle 10 Minuten
+  workflow_dispatch:          # manuell startbar über GitHub-Weboberfläche
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repo auschecken
+        uses: actions/checkout@v4
+
+      - name: Status vom Shelly-Cloud-API holen
+        env:
+          SHELLY_HOST: ${{ secrets.SHELLY_HOST }}
+          SHELLY_AUTH_KEY: ${{ secrets.SHELLY_AUTH_KEY }}
+        run: |
+          curl -s -X POST "https://${SHELLY_HOST}/v2/devices/api/get?auth_key=${SHELLY_AUTH_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{"ids":["2cbcbb2d4f60"],"select":["status"]}' \
+            -o raw_response.json
+
+          cat raw_response.json
+
+      - name: Relevante Werte extrahieren
+        run: |
+          PERCENT=$(jq '.[0].status["input:100"].percent' raw_response.json)
+          UPDATED=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          jq -n \
+            --argjson percent "$PERCENT" \
+            --arg updated "$UPDATED" \
+            '{
+              cistern_percent: $percent,
+              last_updated: $updated,
+              pumps: {
+                pump1: "not_configured",
+                pump2: "not_configured"
+              }
+            }' > data.json
+
+          cat data.json
+
+      - name: Änderungen committen
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          git diff --staged --quiet || git commit -m "Daten aktualisiert"
+          git push
