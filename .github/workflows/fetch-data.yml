@@ -15,6 +15,15 @@ jobs:
       - name: Repo auschecken
         uses: actions/checkout@v4
 
+
+      - name: Debug Host-Secret (sicher)
+        env:
+          SHELLY_HOST: ${{ secrets.SHELLY_HOST }}
+        run: |
+          echo "Länge: ${#SHELLY_HOST}"
+          echo "Erstes Zeichen: '${SHELLY_HOST:0:1}'"
+          echo "Letztes Zeichen: '${SHELLY_HOST: -1}'"
+          
       - name: Status vom Shelly-Cloud-API holen
         env:
           SHELLY_HOST: ${{ secrets.SHELLY_HOST }}
