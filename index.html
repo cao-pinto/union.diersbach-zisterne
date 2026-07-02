@@ -102,7 +102,11 @@ async function loadData() {
     if (data.cistern_percent === null || data.cistern_percent === undefined) {
       percentEl.textContent = 'keine Daten';
     } else {
-      const p = Math.max(0, Math.min(100, data.cistern_percent));
+      // Rohwert aus Shelly (unkalibrierter input:100.percent) auf echten Füllstand umrechnen
+      // Kalibrierpunkte: x=1 -> 0% (leer/Sensor an Luft), x=48 -> 100% (Puffer über gemessenem Max von 47,7)
+      const raw = data.cistern_percent;
+      const calculated = (raw - 1) / (48 - 1) * 100;
+      const p = Math.max(0, Math.min(100, calculated));
       percentEl.textContent = p.toFixed(1) + ' %';
       barEl.style.width = p + '%';
     }
@@ -131,4 +135,3 @@ setInterval(loadData, 60000); // jede Minute neu laden
 
 </body>
 </html>
-<!-- resync -->
