@@ -56,8 +56,9 @@ jobs:
 
           cat data.json
 
-          # Für den nächsten Schritt merken
+          # Für die nächsten Schritte merken
           echo "CALIBRATED=$CALIBRATED" >> $GITHUB_ENV
+          echo "UPDATED=$UPDATED" >> $GITHUB_ENV
 
       - name: An Grafana Cloud pushen
         env:
