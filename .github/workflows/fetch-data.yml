@@ -2,8 +2,8 @@ name: Shelly Daten abrufen
 
 on:
   schedule:
-    - cron: '7,17,27,37,47,57 * * * *'   
-  workflow_dispatch:          # manuell startbar über GitHub-Weboberfläche
+    - cron: '7,17,27,37,47,57 * * * *'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -27,16 +27,26 @@ jobs:
 
           cat raw_response.json
 
-      - name: Relevante Werte extrahieren
+      - name: Kalibrieren und data.json schreiben
         run: |
-          PERCENT=$(jq '.[0].status["input:100"].percent' raw_response.json)
+          RAW=$(jq '.[0].status["input:100"].percent' raw_response.json)
           UPDATED=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
+          # Zentrale Kalibrierformel: (x-1)/(48-1)*100, geclampt auf 0-100
+          CALIBRATED=$(jq -n --argjson raw "$RAW" '
+            (($raw - 1) / (48 - 1) * 100) as $calc
+            | if $calc < 0 then 0 elif $calc > 100 then 100 else $calc end
+          ')
+
+          echo "Roh: $RAW  Kalibriert: $CALIBRATED"
+
           jq -n \
-            --argjson percent "$PERCENT" \
+            --argjson percent "$CALIBRATED" \
+            --argjson raw "$RAW" \
             --arg updated "$UPDATED" \
             '{
               cistern_percent: $percent,
+              cistern_raw: $raw,
               last_updated: $updated,
               pumps: {
                 pump1: "not_configured",
@@ -45,6 +55,21 @@ jobs:
             }' > data.json
 
           cat data.json
+
+          # Für den nächsten Schritt merken
+          echo "CALIBRATED=$CALIBRATED" >> $GITHUB_ENV
+
+      - name: An Grafana Cloud pushen
+        env:
+          GRAFANA_METRICS_URL: ${{ secrets.GRAFANA_METRICS_URL }}
+          GRAFANA_METRICS_USER: ${{ secrets.GRAFANA_METRICS_USER }}
+          GRAFANA_API_KEY: ${{ secrets.GRAFANA_API_KEY }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer ${GRAFANA_METRICS_USER}:${GRAFANA_API_KEY}" \
+            -H "Content-Type: text/plain" \
+            "${GRAFANA_METRICS_URL}" \
+            --data-raw "cistern,sensor=fillstand percent=${CALIBRATED}"
 
       - name: Änderungen committen
         run: |
