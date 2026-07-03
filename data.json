@@ -1,7 +1,7 @@
 {
-  "cistern_percent": 89.12765957446808,
-  "cistern_raw": 42.89,
-  "last_updated": "2026-07-03T15:26:11Z",
+  "cistern_percent": 91.40425531914894,
+  "cistern_raw": 43.96,
+  "last_updated": "2026-07-03T16:53:51Z",
   "pumps": {
     "pump1": "not_configured",
     "pump2": "not_configured"
