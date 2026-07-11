@@ -30,8 +30,17 @@ jobs:
           RAW=$(jq --arg cid "2cbcbb2d4f60" '.[] | select(.id==$cid) | .status["input:100"].percent' raw_response.json)
           UPDATED=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-          # Zentrale Kalibrierformel: (x-1)/(48-1)*100, geclampt auf 0-100
-          CALIBRATED=$(jq -n --argjson raw "$RAW" '
+          # Gleitenden Mittelwert über die letzten 10 Rohwerte bilden (20 Min bei 2-Min-Takt, glättet Spritzer-Ausreißer)
+          if [ ! -f raw_window.json ]; then
+            echo "[]" > raw_window.json
+          fi
+          jq --argjson raw "$RAW" '. + [$raw] | if length > 10 then .[-10:] else . end' \
+            raw_window.json > raw_window_new.json
+          mv raw_window_new.json raw_window.json
+          RAW_AVG=$(jq 'add/length' raw_window.json)
+
+          # Zentrale Kalibrierformel: (x-1)/(48-1)*100, geclampt auf 0-100, auf Basis des Mittelwerts
+          CALIBRATED=$(jq -n --argjson raw "$RAW_AVG" '
             (($raw - 1) / (48 - 1) * 100) as $calc
             | if $calc < 0 then 0 elif $calc > 100 then 100 else $calc end
           ')
@@ -40,7 +49,7 @@ jobs:
           PUMP1=$(jq --arg pid "8c4f008f23cc" '(.[] | select(.id==$pid) | .status["switch:0"].output) // false' raw_response.json)
           PUMP2=$(jq --arg pid "8c4f008f23cc" '(.[] | select(.id==$pid) | .status["switch:1"].output) // false' raw_response.json)
 
-          echo "Roh: $RAW  Kalibriert: $CALIBRATED  Pumpe1: $PUMP1  Pumpe2: $PUMP2"
+          echo "Roh: $RAW  Gemittelt: $RAW_AVG  Kalibriert: $CALIBRATED  Pumpe1: $PUMP1  Pumpe2: $PUMP2"
 
           jq -n \
             --argjson percent "$CALIBRATED" \
@@ -80,6 +89,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data.json
+          git add data.json raw_window.json
           git diff --staged --quiet || git commit -m "Daten aktualisiert"
           git push
