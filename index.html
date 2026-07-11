@@ -54,8 +54,8 @@
     margin-right: 8px;
   }
   .on { background: #2ecc71; }
-  .off { background: #aaa; }
-  .unknown { background: #e0a800; }
+  .off { background: #e74c3c; }
+  .unknown { background: #aaa; }
   .timestamp {
     font-size: 0.8em;
     color: #777;
@@ -79,12 +79,12 @@
 <div class="card">
   <h1>Pumpen</h1>
   <div class="pump">
-    <span><span id="pump1-dot" class="status-dot unknown"></span>Pumpe 1</span>
-    <span id="pump1-text">noch nicht konfiguriert</span>
+    <span><span id="pump1-dot" class="status-dot unknown"></span>Pumpe Vorne</span>
+    <span id="pump1-text">–</span>
   </div>
   <div class="pump">
-    <span><span id="pump2-dot" class="status-dot unknown"></span>Pumpe 2</span>
-    <span id="pump2-text">noch nicht konfiguriert</span>
+    <span><span id="pump2-dot" class="status-dot unknown"></span>Pumpe Hinten</span>
+    <span id="pump2-text">–</span>
   </div>
 </div>
 
@@ -126,11 +126,31 @@ async function loadData() {
       document.getElementById('timestamp').textContent = '';
     }
 
-    // Pumpen sind aktuell Platzhalter, werden später ergänzt
+    if (data.pumps) {
+      setPumpStatus('pump1', data.pumps.pump1);
+      setPumpStatus('pump2', data.pumps.pump2);
+    }
   } catch (err) {
     document.getElementById('percent').textContent = 'Fehler beim Laden';
     document.getElementById('percent').className = 'percent error';
     console.error(err);
+  }
+}
+
+function setPumpStatus(prefix, pump) {
+  const dot = document.getElementById(prefix + '-dot');
+  const text = document.getElementById(prefix + '-text');
+  if (!pump || pump.on === undefined) {
+    dot.className = 'status-dot unknown';
+    text.textContent = 'keine Daten';
+    return;
+  }
+  if (pump.on) {
+    dot.className = 'status-dot on';
+    text.textContent = 'AN';
+  } else {
+    dot.className = 'status-dot off';
+    text.textContent = 'AUS';
   }
 }
 
