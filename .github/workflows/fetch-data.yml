@@ -22,14 +22,14 @@ jobs:
         run: |
           curl -s -X POST "${SHELLY_HOST}/v2/devices/api/get?auth_key=${SHELLY_AUTH_KEY}" \
             -H "Content-Type: application/json" \
-            -d '{"ids":["2cbcbb2d4f60"],"select":["status"]}' \
+            -d '{"ids":["2cbcbb2d4f60","8c4f008f23cc"],"select":["status"]}' \
             -o raw_response.json
 
           cat raw_response.json
 
       - name: Kalibrieren und data.json schreiben
         run: |
-          RAW=$(jq '.[0].status["input:100"].percent' raw_response.json)
+          RAW=$(jq --arg cid "2cbcbb2d4f60" '.[] | select(.id==$cid) | .status["input:100"].percent' raw_response.json)
           UPDATED=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
           # Zentrale Kalibrierformel: (x-1)/(48-1)*100, geclampt auf 0-100
@@ -38,19 +38,25 @@ jobs:
             | if $calc < 0 then 0 elif $calc > 100 then 100 else $calc end
           ')
 
-          echo "Roh: $RAW  Kalibriert: $CALIBRATED"
+          # Pumpenstatus (true/false), Fallback auf false falls Kanal nicht erreichbar
+          PUMP1=$(jq --arg pid "8c4f008f23cc" '(.[] | select(.id==$pid) | .status["switch:0"].output) // false' raw_response.json)
+          PUMP2=$(jq --arg pid "8c4f008f23cc" '(.[] | select(.id==$pid) | .status["switch:1"].output) // false' raw_response.json)
+
+          echo "Roh: $RAW  Kalibriert: $CALIBRATED  Pumpe1: $PUMP1  Pumpe2: $PUMP2"
 
           jq -n \
             --argjson percent "$CALIBRATED" \
             --argjson raw "$RAW" \
             --arg updated "$UPDATED" \
+            --argjson pump1 "$PUMP1" \
+            --argjson pump2 "$PUMP2" \
             '{
               cistern_percent: $percent,
               cistern_raw: $raw,
               last_updated: $updated,
               pumps: {
-                pump1: "not_configured",
-                pump2: "not_configured"
+                pump1: {name: "Pumpe Vorne", on: $pump1},
+                pump2: {name: "Pumpe Hinten", on: $pump2}
               }
             }' > data.json
 
