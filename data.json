@@ -1,7 +1,7 @@
 {
-  "cistern_percent": 3.4148936170212774,
-  "cistern_raw": 2.08,
-  "last_updated": "2026-08-03T06:58:11Z",
+  "cistern_percent": 3.3999999999999995,
+  "cistern_raw": 2.13,
+  "last_updated": "2026-08-03T07:00:49Z",
   "pumps": {
     "pump1": {
       "name": "Pumpe Vorne",
